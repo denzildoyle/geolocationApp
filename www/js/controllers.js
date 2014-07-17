@@ -1,5 +1,5 @@
-angular.module('starter.controllers', []).
+angular.module('starter.controllers', [])
 
-controller('LocationCtrl', function() {
-
-});
+.controller('LocationCtrl', function($scope, currentLocation) {
+  $scope.location = currentLocation;
+})

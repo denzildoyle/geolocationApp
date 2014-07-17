@@ -18,13 +18,102 @@ angular.module('starter', ['ionic', 'starter.controllers'])
   });
 })
 
+.run(function($rootScope, $log, $state) {
+  $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error) {
+    var config;
+
+    if (toState.name === 'location.index') {
+      $log.error(error);
+
+      config = $state.get('location.error');
+
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          config.error = {
+            title: 'Permission Denied',
+            message: 'The application does not have the required permissions to retrieve the current location.'
+          };
+          break;
+        case error.POSITION_UNAVAILABLE:
+          config.error = {
+            title: 'Position Unavailable',
+            message: 'The application is unable to retrieve the current location.'
+          };
+          break;
+        case error.TIMEOUT:
+          config.error = {
+            title: 'Timed out',
+            message: 'The application was unable to retrieve the current location in a timely manner.'
+          };
+          break;
+        default:
+          config.error = {
+            title: 'Unknown error',
+            message: 'The application simply failed to retrieve the current location.'
+          };
+      }
+
+      $state.go('location.error');
+    }
+  });
+})
+
 .config(function($stateProvider, $urlRouterProvider) {
   $stateProvider
-  .state('location', {
+
+  .state('home', {
     url: '/',
+    templateUrl: 'templates/home.html'
+  })
+
+  .state('location', {
+    abstract: true,
+    url: '/location',
+    template: '<ion-nav-view/>'
+  })
+
+  .state('location.index', {
+    url: '/index',
     controller: 'LocationCtrl',
-    templateUrl: 'templates/location.html'
-  });
+    templateUrl: 'templates/location.index.html',
+    resolve: {
+      currentLocation: function($q) {
+        var q = $q.defer();
+
+        // See https://github.com/apache/cordova-plugin-geolocation/blob/master/doc/index.md#navigatorgeolocationgetcurrentposition
+        navigator.geolocation.getCurrentPosition(function(position) {
+          q.resolve(position);
+        }, function(error) {
+          q.reject(error);
+        }, {
+          // geoLocationOptions
+          // See https://github.com/apache/cordova-plugin-geolocation/blob/master/doc/index.md#geolocationoptions
+          maximumAge: 5000,
+          timeout: 10000,
+          enableHighAccuracy: true
+        });
+
+        return q.promise;
+      }
+    }
+  })
+
+  .state('location.error', {
+    url: '/error',
+    resolve: {
+      error: function() {
+        return this.error;
+      }
+    },
+    onEnter: function($ionicPopup, $state, error) {
+      $ionicPopup.alert({
+        title: error.title,
+        template: error.message
+      }).then(function() {
+        $state.go('home');
+      });
+    }
+  })
 
   $urlRouterProvider.otherwise('/');
 })
