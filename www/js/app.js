@@ -18,11 +18,27 @@ angular.module('starter', ['ionic', 'starter.controllers'])
   });
 })
 
-.run(function($rootScope, $log, $state) {
+.run(function($rootScope, $log, $state, $ionicLoading) {
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams, error) {
+    if (toState.name === 'location.index') {
+      $ionicLoading.show({
+        template: 'Loading...'
+      });
+    }
+  });
+
+  $rootScope.$on('$stateChangeSuccess', function(event, toState, toParams, fromState, fromParams, error) {
+    if (toState.name === 'location.index') {
+      $ionicLoading.hide();
+    }
+  });
+
   $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error) {
     var config;
 
     if (toState.name === 'location.index') {
+      $ionicLoading.hide();
+
       $log.error(error);
 
       config = $state.get('location.error');
@@ -52,6 +68,8 @@ angular.module('starter', ['ionic', 'starter.controllers'])
             message: 'The application simply failed to retrieve the current location.'
           };
       }
+
+      config.error.returnState = $state.current.name;
 
       $state.go('location.error');
     }
@@ -110,7 +128,7 @@ angular.module('starter', ['ionic', 'starter.controllers'])
         title: error.title,
         template: error.message
       }).then(function() {
-        $state.go('home');
+        $state.go(error.returnState);
       });
     }
   })
